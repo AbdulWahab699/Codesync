@@ -1,0 +1,5 @@
+@import 'remixicon/fonts/remixicon.css'; /* Fixed: Placed at the very top */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
