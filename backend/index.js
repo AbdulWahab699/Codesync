@@ -7,29 +7,24 @@ require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
-});
 
+// Keep only this declaration with the environment variable configuration
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || '*',
     methods: ['GET', 'POST']
   }
-})
+});
 
 app.use(cors({
   origin: process.env.CLIENT_URL || '*'
-}))
+}));
 app.use(express.json());
 
 const authRoutes = require('./src/routes/authRoutes');
 const roomRoutes = require('./src/routes/roomRoutes');
-const executeRoutes = require('./src/routes/executionRoutes')
-app.use('/api/execute', executeRoutes)
+const executeRoutes = require('./src/routes/executionRoutes');
+app.use('/api/execute', executeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 
