@@ -1,76 +1,62 @@
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const axios = require('axios')
 
-const TIMEOUT = 5000; // 5 seconds
-const TEMP_DIR = path.join(__dirname, '../../temp').replace(/\\/g, '/');
+const PISTON_URL = 'https://emkc.org/api/v2/piston/execute'
 
-// Create temp dir if not exists
-if (!fs.existsSync(TEMP_DIR)) {
-  fs.mkdirSync(TEMP_DIR, { recursive: true });
-}
-
-const getDockerCommand = (language, code) => {
-  const escapedCode = code.replace(/"/g, '\\"').replace(/\n/g, '\\n')
-  const commands = {
-    javascript: `docker run --rm --memory=50m --cpus=0.5 --network none node:18-alpine node -e "${escapedCode}"`,
-    python: `docker run --rm --memory=50m --cpus=0.5 --network none python:3.11-alpine python -c "${escapedCode}"`,
-    cpp: `docker run --rm --memory=50m --cpus=0.5 --network none gcc:latest sh -c "echo '${escapedCode}' > /tmp/code.cpp && g++ /tmp/code.cpp -o /tmp/out && /tmp/out"`
+const LANGUAGE_CONFIG = {
+  javascript: {
+    language: 'javascript',
+    version: '18.15.0'
+  },
+  python: {
+    language: 'python',
+    version: '3.10.0'
+  },
+  cpp: {
+    language: 'c++',
+    version: '10.2.0'
   }
-  return commands[language]
 }
-
 
 exports.executeCode = async (req, res) => {
-  const { code, language, roomId } = req.body;
+  const { code, language } = req.body
 
-  // Generate unique filename
-  const extensions = { javascript: 'js', python: 'py', cpp: 'cpp' };
-  const filename = `${uuidv4()}.${extensions[language]}`;
-  const filepath = path.join(TEMP_DIR, filename);
+  if (!code || !language) {
+    return res.status(400).json({ message: 'Code and language are required' })
+  }
+
+  if (code.length > 10000) {
+    return res.status(400).json({ message: 'Code too long' })
+  }
+
+  const config = LANGUAGE_CONFIG[language]
+  if (!config) {
+    return res.status(400).json({ message: `Unsupported language: ${language}` })
+  }
 
   try {
-    // Write code to temp file
-    fs.writeFileSync(filepath, code);
+    const response = await axios.post(PISTON_URL, {
+      language: config.language,
+      version: config.version,
+      files: [
+        {
+          name: 'main',
+          content: code
+        }
+      ]
+    })
 
-    const dockerCommand = getDockerCommand(language, filename);
+    const { run } = response.data
 
-    // Execute in Docker
-    const process = exec(dockerCommand, { timeout: TIMEOUT });
-
-    let output = '';
-    let errorOutput = '';
-
-    process.stdout.on('data', (data) => {
-      output += data;
-    });
-
-    process.stderr.on('data', (data) => {
-      errorOutput += data;
-    });
-
-    process.on('close', (code) => {
-      // Cleanup temp file
-      if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
-
-      if (code === null) {
-        return res.status(200).json({
-          output: '',
-          error: 'Execution timed out after 5 seconds',
-          timedOut: true
-        });
-      }
-
-      res.status(200).json({
-        output,
-        error: errorOutput,
-        exitCode: code
-      });
-    });
+    res.status(200).json({
+      output: run.stdout || '',
+      error: run.stderr || '',
+      exitCode: run.code
+    })
 
   } catch (err) {
-    if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
-    res.status(500).json({ message: 'Execution failed', error: err.message });
+    res.status(500).json({
+      message: 'Execution failed',
+      error: err.message
+    })
   }
-};
+}
