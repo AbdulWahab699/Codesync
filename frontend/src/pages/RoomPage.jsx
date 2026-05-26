@@ -20,10 +20,6 @@ import ErrorBoundary from "../components/ErrorBoundary";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-
-
-
-// Framer Motion variant architectures
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
@@ -52,30 +48,18 @@ function RoomPage({ user, onLogout }) {
   const token = localStorage.getItem("token");
   const [onlineUsers, setOnlineUsers] = useState([]);
 
-  // Custom glassmorphic dropdown list configuration state tracker
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const languageOptions = [
-    {
-      value: "javascript",
-      label: "JavaScript",
-      detail: "(NodeJS Node)",
-      code: "01",
-    },
+    { value: "javascript", label: "JavaScript", detail: "(NodeJS Node)", code: "01" },
     { value: "python", label: "Python", detail: "(3.x Sandbox)", code: "02" },
-    {
-      value: "cpp",
-      label: "C++",
-      detail: "(GCC Binaries Container)",
-      code: "03",
-    },
+    { value: "cpp", label: "C++", detail: "(GCC Binaries Container)", code: "03" },
   ];
 
   const currentSelectedLang =
     languageOptions.find((opt) => opt.value === language) || languageOptions[0];
 
-  // Close custom dropdown when clicking anywhere outside its parent anchor zone
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -85,6 +69,34 @@ function RoomPage({ user, onLogout }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Fetch fresh room data on reload + reconnect socket
+  useEffect(() => {
+    if (!activeRoom) return
+
+    const fetchFreshRoom = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/rooms/${activeRoom.roomId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        if (data.room) {
+          setActiveRoom(data.room)
+          setLanguage(data.room.language)
+          localStorage.setItem('activeRoom', JSON.stringify(data.room))
+        }
+      } catch (err) {
+        console.error('Failed to fetch fresh room:', err)
+      }
+    }
+
+    fetchFreshRoom()
+    socket.connect()
+    socket.emit('join-room', {
+      roomId: activeRoom.roomId,
+      username: user.username
+    })
+  }, [])
 
   const createRoom = async () => {
     setLoading(true);
@@ -144,6 +156,7 @@ function RoomPage({ user, onLogout }) {
   };
 
   const saveCode = async (code) => {
+    if (!activeRoom) return
     try {
       await fetch(`${API_URL}/api/rooms/${activeRoom.roomId}/save`, {
         method: "PUT",
@@ -235,26 +248,27 @@ function RoomPage({ user, onLogout }) {
     }
   };
 
-  // RENDER STATE A: Active Synchronization Code Sandbox Environment Workspace
   if (activeRoom) {
     return (
       <div className="min-h-screen md:h-screen bg-[#080808] flex flex-col selection:bg-orange-500/30 selection:text-white overflow-x-hidden">
         <Toolbar
-          roomName={activeRoom.name}
-          roomId={activeRoom.roomId}
-          language={language}
-          onLanguageChange={setLanguage}
-          onRun={handleRun}
-          isRunning={isRunning}
-          onLogout={onLogout}
-          onLogout={() => {
-            localStorage.removeItem("activeRoom");
-            onLogout();
-          }}
-        />
+  roomName={activeRoom.name}
+  roomId={activeRoom.roomId}
+  language={language}
+  onLanguageChange={setLanguage}
+  onRun={handleRun}
+  isRunning={isRunning}
+  onLogout={async () => {
+    // Save immediately before leaving
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    await saveCode(codeRef.current)
+    localStorage.removeItem("activeRoom")
+    socket.disconnect()
+    onLogout()
+  }}
+/>
         <UserPresence users={onlineUsers} currentUser={user.username} />
 
-        {/* Main interactive panel splits to column on small screens, row on screens bigger than md breakpoint */}
         <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden w-full">
           <div className="w-full md:w-3/5 h-[50vh] md:h-full border-b border-zinc-800 md:border-b-0">
             <ErrorBoundary>
@@ -282,10 +296,8 @@ function RoomPage({ user, onLogout }) {
     );
   }
 
-  // RENDER STATE B: Dashboard Hub Gateway Menu Screen
   return (
     <div className="min-h-screen bg-[#080808] flex flex-col items-center justify-center relative overflow-y-auto overflow-x-hidden font-sans antialiased text-white p-4 md:p-6">
-      {/* Dynamic Form Input Focus Style Injection Overrides */}
       <style>{`
         .room-input:focus {
           outline: none !important;
@@ -294,7 +306,6 @@ function RoomPage({ user, onLogout }) {
         }
       `}</style>
 
-      {/* Floating Sign-Out Action Element Controller */}
       <motion.button
         onClick={onLogout}
         whileHover={{
@@ -309,14 +320,12 @@ function RoomPage({ user, onLogout }) {
         Sign Out
       </motion.button>
 
-      {/* Radial ambient backend illumination gradient layer glow effect */}
       <div
-        className="absolute w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-radial gradient pointer-events-none z-1"
+        className="absolute pointer-events-none z-1"
         style={{
-          background:
-            "radial-gradient(circle, rgba(244,140,6,0.06) 0%, transparent 70%)",
-          top: "50%",
-          left: "50%",
+          background: "radial-gradient(circle, rgba(244,140,6,0.06) 0%, transparent 70%)",
+          width: "600px", height: "600px",
+          top: "50%", left: "50%",
           transform: "translate(-50%, -50%)",
         }}
       />
@@ -363,7 +372,6 @@ function RoomPage({ user, onLogout }) {
             </motion.div>
           )}
 
-          {/* BLOCK ARCHITECTURE I: CREATION HANDLER CONTAINER PANEL */}
           <motion.div
             variants={fadeUp}
             className="bg-zinc-900/30 border border-zinc-800/40 rounded-xl p-4 md:p-5 shadow-sm hover:border-zinc-800 transition-colors duration-200"
@@ -383,12 +391,7 @@ function RoomPage({ user, onLogout }) {
               className="room-input w-full bg-zinc-900/50 border border-zinc-800/80 text-white placeholder-zinc-600 px-3.5 py-2.5 rounded-lg mb-3 text-xs tracking-wide transition-all duration-200"
             />
 
-            {/* UPGRADED APPLE LIQUID GLASSMORPHIC DROPDOWN ATTACHMENT */}
-            <div
-              className="relative w-full mb-3.5"
-              ref={dropdownRef}
-              style={{ zIndex: 50 }}
-            >
+            <div className="relative w-full mb-3.5" ref={dropdownRef} style={{ zIndex: 50 }}>
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -409,9 +412,7 @@ function RoomPage({ user, onLogout }) {
                 <div className="flex items-center gap-2.5 select-none">
                   <Globe
                     size={14}
-                    className={
-                      isDropdownOpen ? "text-[#F48C06]" : "text-zinc-500"
-                    }
+                    className={isDropdownOpen ? "text-[#F48C06]" : "text-zinc-500"}
                     style={{ transition: "color 0.3s" }}
                   />
                   <span>
@@ -421,7 +422,6 @@ function RoomPage({ user, onLogout }) {
                     </span>
                   </span>
                 </div>
-
                 <motion.div
                   animate={{ rotate: isDropdownOpen ? 180 : 0 }}
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
@@ -443,8 +443,7 @@ function RoomPage({ user, onLogout }) {
                       backdropFilter: "blur(25px)",
                       WebkitBackdropFilter: "blur(25px)",
                       border: "1px solid rgba(255, 255, 255, 0.06)",
-                      boxShadow:
-                        "0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0px rgba(255, 255, 255, 0.05)",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0px rgba(255, 255, 255, 0.05)",
                       borderRadius: "12px",
                     }}
                     className="absolute left-0 w-full overflow-hidden p-1.5 origin-top z-50"
@@ -467,13 +466,10 @@ function RoomPage({ user, onLogout }) {
                         >
                           <div className="flex items-center gap-2.5 z-10">
                             <span>{opt.label}</span>
-                            <span
-                              className={`text-[10px] font-mono transition-colors ${isSelected ? "text-[#F48C06]" : "text-zinc-500 group-hover:text-zinc-400"}`}
-                            >
+                            <span className={`text-[10px] font-mono transition-colors ${isSelected ? "text-[#F48C06]" : "text-zinc-500 group-hover:text-zinc-400"}`}>
                               {opt.detail}
                             </span>
                           </div>
-
                           <div className="flex items-center gap-2 z-10 font-mono text-[10px] text-zinc-600">
                             <span className="group-hover:text-[#F48C06]/50 transition-colors">
                               0{opt.code}
@@ -484,7 +480,6 @@ function RoomPage({ user, onLogout }) {
                               </motion.div>
                             )}
                           </div>
-
                           {!isSelected && (
                             <div className="absolute left-0 top-1/4 bottom-1/4 w-[2px] bg-[#F48C06] rounded-r opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           )}
@@ -499,11 +494,7 @@ function RoomPage({ user, onLogout }) {
             <motion.button
               onClick={createRoom}
               disabled={loading || !roomName}
-              whileHover={
-                !(loading || !roomName)
-                  ? { scale: 1.015, boxShadow: "0 0 20px rgba(244,140,6,0.25)" }
-                  : {}
-              }
+              whileHover={!(loading || !roomName) ? { scale: 1.015, boxShadow: "0 0 20px rgba(244,140,6,0.25)" } : {}}
               whileTap={!(loading || !roomName) ? { scale: 0.985 } : {}}
               className="w-full bg-gradient-to-r from-[#E85D04] to-[#F48C06] text-white font-semibold py-2.5 rounded-lg text-xs tracking-wide shadow-md transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed select-none"
             >
@@ -511,7 +502,6 @@ function RoomPage({ user, onLogout }) {
             </motion.button>
           </motion.div>
 
-          {/* BLOCK ARCHITECTURE II: JOIN INTEGRATION ACTION PANEL */}
           <motion.div
             variants={fadeUp}
             className="bg-zinc-900/30 border border-zinc-800/40 rounded-xl p-4 md:p-5 shadow-sm hover:border-zinc-800 transition-colors duration-200"
@@ -534,11 +524,7 @@ function RoomPage({ user, onLogout }) {
             <motion.button
               onClick={joinRoom}
               disabled={loading || !roomId}
-              whileHover={
-                !(loading || !roomId)
-                  ? { scale: 1.015, boxShadow: "0 0 20px rgba(16,185,129,0.2)" }
-                  : {}
-              }
+              whileHover={!(loading || !roomId) ? { scale: 1.015, boxShadow: "0 0 20px rgba(16,185,129,0.2)" } : {}}
               whileTap={!(loading || !roomId) ? { scale: 0.985 } : {}}
               className="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-bold py-2.5 rounded-lg text-xs tracking-wide shadow-md transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed select-none"
             >

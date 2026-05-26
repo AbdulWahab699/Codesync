@@ -19,6 +19,7 @@ function Editor({ roomId, language, username, onCodeChange, initialCode }) {
   const decorationsRef = useRef([]);
   const widgetsRef = useRef({});
   const userColor = useRef(getRandomColor()).current;
+  const YJS_URL = import.meta.env.VITE_YJS_URL || 'ws://localhost:1234'
   
   // Track client window state for real-time mobile responsive layout sizes
   const [editorFontSize, setEditorFontSize] = useState(14);
@@ -65,10 +66,10 @@ function Editor({ roomId, language, username, onCodeChange, initialCode }) {
     ydocRef.current = new Y.Doc();
 
     providerRef.current = new WebsocketProvider(
-      "ws://localhost:1234",
-      roomId,
-      ydocRef.current
-    );
+  YJS_URL,
+  roomId,
+  ydocRef.current
+)
 
     // Set local user awareness
     const awareness = providerRef.current.awareness;
@@ -162,15 +163,21 @@ function Editor({ roomId, language, username, onCodeChange, initialCode }) {
     ytextRef.current = ydocRef.current.getText("code");
 
     setTimeout(() => {
-      if (ytextRef.current.toString() === "" && initialCode) {
-        ydocRef.current.transact(() => {
-          ytextRef.current.insert(0, initialCode);
-        });
-        if (editorRef.current) {
-          editorRef.current.setValue(initialCode);
-        }
-      }
-    }, 1000);
+  if (editorRef.current && initialCode) {
+    const currentYjsText = ytextRef.current.toString()
+    
+    if (currentYjsText === '') {
+      ydocRef.current.transact(() => {
+        ytextRef.current.insert(0, initialCode)
+      })
+    }
+    
+    // Always set Monaco value regardless of Yjs state
+    editorRef.current.setValue(
+      ytextRef.current.toString() || initialCode
+    )
+  }
+}, 1500)
 
     ytextRef.current.observe(() => {
       if (!editorRef.current) return
