@@ -14,7 +14,16 @@ const io = new Server(server, {
   }
 });
 
-app.use(cors());
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || '*',
+    methods: ['GET', 'POST']
+  }
+})
+
+app.use(cors({
+  origin: process.env.CLIENT_URL || '*'
+}))
 app.use(express.json());
 
 const authRoutes = require('./src/routes/authRoutes');
