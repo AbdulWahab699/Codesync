@@ -51,7 +51,7 @@ function LoginPage({ onLogin }) {
     setError("");
 
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${API_URL}/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -82,7 +82,8 @@ function LoginPage({ onLogin }) {
           outline: none !important;
           border-color: rgba(244, 140, 6, 0.6) !important;
           box-shadow: 0 0 14px rgba(244, 140, 6, 0.25) !important;
-        }
+        }import { *asY } from 'yjs';
+
         .theme-checkbox {
           accent-color: #F48C06;
           cursor: pointer;
