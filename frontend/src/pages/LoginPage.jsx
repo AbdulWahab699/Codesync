@@ -3,7 +3,7 @@ import { Code2, Eye, EyeOff, Home } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "https://codesync-production-cf26.up.railway.app";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
