@@ -19,7 +19,7 @@ function Editor({ roomId, language, username, onCodeChange, initialCode }) {
   const decorationsRef = useRef([]);
   const widgetsRef = useRef({});
   const userColor = useRef(getRandomColor()).current;
-  const YJS_URL = import.meta.env.VITE_YJS_URL || 'ws://localhost:1234'
+const YJS_URL = 'wss://tender-enthusiasm-production-4bc3.up.railway.app'
   
   // Track client window state for real-time mobile responsive layout sizes
   const [editorFontSize, setEditorFontSize] = useState(14);

@@ -76,7 +76,7 @@ function RoomPage({ user, onLogout }) {
 
     const fetchFreshRoom = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/rooms/${activeRoom.roomId}`, {
+        const res = await fetch(`${API_URL}/v1/rooms/${activeRoom.roomId}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         const data = await res.json()
@@ -102,7 +102,7 @@ function RoomPage({ user, onLogout }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/api/rooms/create`, {
+      const res = await fetch(`${API_URL}/v1/rooms/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,7 +127,7 @@ function RoomPage({ user, onLogout }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/api/rooms/join/${roomId}`, {
+      const res = await fetch(`${API_URL}/v1/rooms/join/${roomId}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -158,7 +158,7 @@ function RoomPage({ user, onLogout }) {
   const saveCode = async (code) => {
     if (!activeRoom) return
     try {
-      await fetch(`${API_URL}/api/rooms/${activeRoom.roomId}/save`, {
+      await fetch(`${API_URL}/v1/rooms/${activeRoom.roomId}/save`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -200,7 +200,7 @@ function RoomPage({ user, onLogout }) {
     setOutput([{ type: "system", text: `Running ${language} code...` }]);
 
     try {
-      const res = await fetch(`${API_URL}/api/execute/run`, {
+      const res = await fetch(`${API_URL}/v1/execute/run`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -24,9 +24,9 @@ app.use(express.json());
 const authRoutes = require('./src/routes/authRoutes');
 const roomRoutes = require('./src/routes/roomRoutes');
 const executeRoutes = require('./src/routes/executionRoutes');
-app.use('/api/execute', executeRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/rooms', roomRoutes);
+app.use('/v1/execute', executeRoutes);
+app.use('/v1/auth', authRoutes);
+app.use('/v1/rooms', roomRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
