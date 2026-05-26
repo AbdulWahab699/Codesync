@@ -34,16 +34,15 @@ exports.executeCode = async (req, res) => {
   }
 
   try {
+    console.log('Calling Piston API with:', config.language, config.version)
+
     const response = await axios.post(PISTON_URL, {
       language: config.language,
       version: config.version,
-      files: [
-        {
-          name: 'main',
-          content: code
-        }
-      ]
+      files: [{ name: 'main', content: code }]
     })
+
+    console.log('Piston response:', JSON.stringify(response.data))
 
     const { run } = response.data
 
@@ -54,6 +53,7 @@ exports.executeCode = async (req, res) => {
     })
 
   } catch (err) {
+    console.error('Piston error:', err.message, err.response?.data)
     res.status(500).json({
       message: 'Execution failed',
       error: err.message
