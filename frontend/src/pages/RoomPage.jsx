@@ -18,7 +18,7 @@ import Terminal from "../components/Terminal";
 import UserPresence from "../components/UserPresence";
 import ErrorBoundary from "../components/ErrorBoundary";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://codesync-production-cf26.up.railway.app";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
